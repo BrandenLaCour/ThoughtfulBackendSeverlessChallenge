@@ -1,0 +1,87 @@
+org: blacour87
+app: challenge
+service: Challenge
+
+frameworkVersion: '3'
+
+functions:
+  GetPassword:
+    handler: passwordHandler.getPassword
+    events:
+      - httpApi:
+          method: POST
+          path: /get-email
+          #figure out cors setup here
+  validatePassword:
+    handler: validateHandler.validatePassword
+    events:
+      - httpApi:
+          method: POST
+          path: /validate-password
+provider:
+  name: aws
+  runtime: nodejs14.x
+  iam:  
+    role:
+      statements:
+        - Effect: 'Allow'
+          Resource: 'arn:aws:dynamodb:*:*:table/OneTimePasswords'
+          Action: 
+            - dynamodb:BatchGetItem
+            - dynamodb:GetItem
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:BatchWriteItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+
+
+
+
+resources:
+  Resources:  
+    ReactBucket:
+      Type: AWS::S3::Bucket
+      Properties: 
+        PublicAccessBlockConfiguration: 
+          BlockPublicAcls : false
+          BlockPublicPolicy : false
+          IgnorePublicAcls : false
+          RestrictPublicBuckets : false
+        WebsiteConfiguration: 
+          ErrorDocument: index.html
+          IndexDocument: index.html
+        BucketName: thoughtfulnewbucket2022b12340dak23
+    ReactBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties: 
+        Bucket: !Ref ReactBucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement: 
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - s3:GetObject
+            Resource: arn:aws:s3:::thoughtfulnewbucket2022b12340dak23/*
+    OneTimePassTable:
+      Type: AWS::DynamoDB::Table
+      Properties: 
+        AttributeDefinitions: 
+          -
+            AttributeName: "email"
+            AttributeType: "S"
+          -
+            AttributeName: "password"
+            AttributeType: "S"
+        KeySchema:
+          -
+            AttributeName: "email"
+            KeyType: "HASH"
+          -
+            AttributeName: 'password'
+            KeyType: "RANGE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: OneTimePasswords
